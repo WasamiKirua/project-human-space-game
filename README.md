@@ -4,7 +4,8 @@ You are the lone crew member on light transport ship *Gradient Ascent*. Your shi
 
 <img width="100%" src="assets/screenshot.png" />
 
-The entire game runs locally, powered by gpt-oss, Whisper, Kokoro TTS, and Pipecat.
+As configured here, the entire game runs locally, powered by gpt-oss, Whisper, Kokoro TTS, and Pipecat. You can easily switch out any of these components to use cloud services or self-hosted API endpoints in the cloud, though, of course!
+
   - [gpt-oss](https://github.com/openai/gpt-oss) - use the 20B or 120B model
   - [Whisper](https://docs.pipecat.ai/server/services/stt/whisper)
   - [Kokoro TTS](server/kokoro_tts.py)
