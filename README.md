@@ -2,9 +2,15 @@
 
 You are the lone crew member on light transport ship *Gradient Ascent*. Your ship has suffered a catastrophic failure, cause unknown. Work with the ship's AI to diagnose the failure and make it safely to a station or planet.
 
-The entire game runs locally, powered by gpt-oss, Whisper, Kokoro TTS, and Pipecat.
-
 <img width="100%" src="assets/screenshot.png" />
+
+The entire game runs locally, powered by gpt-oss, Whisper, Kokoro TTS, and Pipecat.
+  - [gpt-oss](https://github.com/openai/gpt-oss) - use the 20B or 120B model
+  - [Whisper](https://docs.pipecat.ai/server/services/stt/whisper)
+  - [Kokoro TTS](server/kokoro_tts.py)
+  - [Pipecat](https://pipecat.ai/)
+  - Open source, open data, native audio [smart-turn model](https://github.com/pipecat-ai/smart-turn)
+  - [voice-ui-kit](https://github.com/pipecat-ai/voice-ui-kit)
 
 # Setup
 

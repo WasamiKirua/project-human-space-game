@@ -28,6 +28,8 @@ from pipecat.transports.base_transport import TransportParams
 from pipecat.runner.types import RunnerArguments
 from pipecat.runner.utils import create_transport
 from pipecat.processors.frame_processor import FrameProcessor
+from pipecat.audio.turn.smart_turn.base_smart_turn import SmartTurnParams
+from pipecat.audio.turn.smart_turn.local_smart_turn_v2 import LocalSmartTurnAnalyzerV2
 
 load_dotenv()
 
@@ -224,9 +226,9 @@ async def bot(runner_args: RunnerArguments):
             audio_in_enabled=True,
             audio_out_enabled=True,
             vad_analyzer=SileroVADAnalyzer(),
-            # turn_analyzer=LocalSmartTurnAnalyzerV2(
-            #     smart_turn_model_path=None, params=SmartTurnParams()
-            # ),
+            turn_analyzer=LocalSmartTurnAnalyzerV2(
+                smart_turn_model_path=None, params=SmartTurnParams()
+            ),
         ),
     }
 
