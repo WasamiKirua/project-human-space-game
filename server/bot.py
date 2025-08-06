@@ -3,28 +3,28 @@ Interruptible bot using SmallWebRTCTransport.
 Based on Pipecat's 07-interruptible.py example.
 """
 
-import asyncio
 import os
 import sys
-from typing import Optional
 
 from dotenv import load_dotenv
 from loguru import logger
 
 from pipecat.audio.vad.silero import SileroVADAnalyzer
-from pipecat.audio.turn.smart_turn.base_smart_turn import SmartTurnParams
-from pipecat.audio.turn.smart_turn.local_smart_turn_v2 import LocalSmartTurnAnalyzerV2
-from pipecat.frames.frames import TranscriptionFrame, StartInterruptionFrame, StopInterruptionFrame
+from pipecat.frames.frames import (
+    TranscriptionFrame,
+    StartInterruptionFrame,
+    StopInterruptionFrame,
+    LLMTextFrame,
+)
 from pipecat.pipeline.pipeline import Pipeline
 from pipecat.pipeline.runner import PipelineRunner
 from pipecat.pipeline.task import PipelineParams, PipelineTask
 from pipecat.processors.aggregators.openai_llm_context import OpenAILLMContext
 from pipecat.processors.frameworks.rtvi import RTVIConfig, RTVIObserver, RTVIProcessor
-from pipecat.services.cartesia.tts import CartesiaTTSService
-from pipecat.services.speechmatics.stt import SpeechmaticsSTTService
+from kokoro_tts import KokoroTTSService
+from pipecat.services.whisper.stt import WhisperSTTServiceMLX, MLXModel
 from pipecat.services.openai.llm import OpenAILLMService
 from pipecat.transports.base_transport import TransportParams
-from pipecat.transports.network.small_webrtc import SmallWebRTCTransport
 from pipecat.runner.types import RunnerArguments
 from pipecat.runner.utils import create_transport
 from pipecat.processors.frame_processor import FrameProcessor
@@ -34,6 +34,7 @@ load_dotenv()
 logger.remove()
 logger.add(sys.stderr, level="DEBUG")
 
+
 class TranscriptionFrameFixer(FrameProcessor):
     async def process_frame(self, frame, direction):
         await super().process_frame(frame, direction)
@@ -41,33 +42,48 @@ class TranscriptionFrameFixer(FrameProcessor):
             if not frame.user_id:
                 frame.user_id = ""
         await self.push_frame(frame, direction)
-        
-        
+
+
+class ChannelAnalysisStripper(FrameProcessor):
+    def __init__(self):
+        super().__init__()
+        self._last_frame_was_channel = False
+
+    async def process_frame(self, frame, direction):
+        await super().process_frame(frame, direction)
+
+        # Check if this is an LLMTextFrame with "analysis" content
+        if isinstance(frame, LLMTextFrame):
+            if frame.text == "<|channel|>":
+                self._last_frame_was_channel = True
+                return
+            else:
+                if frame.text == "analysis" and self._last_frame_was_channel:
+                    self._last_frame_was_channel = False
+                    return
+            self._last_frame_was_channel = False
+
+        await self.push_frame(frame, direction)
+
+
 async def run_bot(transport):
     """Main bot function that creates and runs the pipeline."""
-        
-    # Create RTVI processor with config
+
     rtvi = RTVIProcessor(config=RTVIConfig(config=[]))
 
-    # Initialize STT service
-    stt = SpeechmaticsSTTService(
-        api_key=os.getenv("SPEECHMATICS_API_KEY"),
-        enable_speaker_diarization=True,
-    )
+    stt = WhisperSTTServiceMLX(model=MLXModel.LARGE_V3_TURBO_Q4)
 
-    # Initialize TTS service
-    tts = CartesiaTTSService(
-        api_key=os.getenv("CARTESIA_API_KEY"),
-        voice_id="79a125e8-cd45-4c13-8a67-188112f4dd22",  # British Lady
-    )
+    tts = KokoroTTSService(model="prince-canuma/Kokoro-82M", voice="af_heart", sample_rate=24000)
 
     # Initialize LLM service
     llm = OpenAILLMService(
         api_key=os.getenv("OPENAI_API_KEY"),
-        model="gpt-4o-mini",
+        base_url="http://localhost:8080/v1",
+        model="",
     )
 
     tf_fixer = TranscriptionFrameFixer()
+    channel_stripper = ChannelAnalysisStripper()
 
     # System prompt
     messages = [
@@ -82,17 +98,20 @@ async def run_bot(transport):
     context_aggregator = llm.create_context_aggregator(context)
 
     # Create pipeline
-    pipeline = Pipeline([
-        transport.input(),
-        stt,
-        tf_fixer,
-        rtvi,  # Add RTVI processor for transcription events
-        context_aggregator.user(),
-        llm,
-        tts,
-        transport.output(),
-        context_aggregator.assistant(),
-    ])
+    pipeline = Pipeline(
+        [
+            transport.input(),
+            stt,
+            tf_fixer,
+            rtvi,  # Add RTVI processor for transcription events
+            context_aggregator.user(),
+            llm,
+            channel_stripper,
+            tts,
+            transport.output(),
+            context_aggregator.assistant(),
+        ]
+    )
 
     # Create task with RTVI observer
     task = PipelineTask(
@@ -110,37 +129,38 @@ async def run_bot(transport):
         await rtvi.set_bot_ready()
         # Kick off the conversation
         await task.queue_frames([context_aggregator.user().get_context_frame()])
-    
+
     @rtvi.event_handler("on_client_message")
     async def on_client_message(rtvi, message):
         """Handle custom messages from the client."""
         logger.info(f"Received client message: {message}")
-        
+
         # Extract message type and data from RTVIClientMessage object
         msg_type = message.type
-        msg_data = message.data if hasattr(message, 'data') else {}
-        
+        msg_data = message.data if hasattr(message, "data") else {}
+
         if msg_type == "custom-message":
             text = msg_data.get("text", "") if isinstance(msg_data, dict) else ""
             if text:
                 # Process the text message as user input
                 logger.info(f"Processing custom message: {text}")
                 # Send the text as a TranscriptionFrame which will be processed by the context aggregator
-                await task.queue_frames([
-                    StartInterruptionFrame(),
-                    TranscriptionFrame(
-                    text=text,
-                    user_id="text-input",
-                    timestamp="",
-                    ),
-                    StopInterruptionFrame(),
-                ])
-                
+                await task.queue_frames(
+                    [
+                        StartInterruptionFrame(),
+                        TranscriptionFrame(
+                            text=text,
+                            user_id="text-input",
+                            timestamp="",
+                        ),
+                        StopInterruptionFrame(),
+                    ]
+                )
+
                 # Send acknowledgment back to client
-                await rtvi.send_server_message({
-                    "type": "message-received",
-                    "text": f"Received: {text}"
-                })
+                await rtvi.send_server_message(
+                    {"type": "message-received", "text": f"Received: {text}"}
+                )
 
     @transport.event_handler("on_client_connected")
     async def on_client_connected(transport, client):
@@ -185,6 +205,7 @@ async def bot(runner_args: RunnerArguments):
 
     transport = await create_transport(runner_args, transport_params)
     await run_bot(transport)
+
 
 if __name__ == "__main__":
     from pipecat.runner.run import main
