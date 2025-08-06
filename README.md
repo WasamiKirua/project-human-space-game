@@ -1,4 +1,4 @@
-# Space Adventure Interactive Story - Voice Mode
+# Space Adventure Story - Voice Mode
 
 You are the lone crew member on light transport ship *Gradient Ascent*. Your ship has suffered a catastrophic failure, cause unknown. Work with the ship's AI to diagnose the failure and make it safely to a station or planet.
 
@@ -27,7 +27,7 @@ MODEL=ggml-org/gpt-oss-120b-GGUF
 llama-server -hf $MODEL --verbose-prompt --chat-template-file gpt-oss-template.jinja --jinja --cache-reuse 128 -fa
 ```
 
-## Pipecat voice bot 
+## [Pipecat](https://pipecat.ai/) voice bot 
 
 ```
 cd server
