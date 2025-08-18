@@ -6,7 +6,7 @@ You are the lone crew member on light transport ship *Gradient Ascent*. Your shi
 
 As configured here, the entire game runs locally, powered by gpt-oss, Whisper, Kokoro TTS, and Pipecat. You can easily switch out any of these components to use cloud services or self-hosted API endpoints in the cloud, though, of course!
 
-  - [gpt-oss](https://github.com/openai/gpt-oss) - use the 20B or 120B model
+  - [llama.cpp](https://huggingface.co/collections/WasamiKirua/project-human-samantha-her-67b1d60c9becd2d04421fe71)) - you can choose between a wide range of SLM i fine tuned!
   - [Whisper](https://docs.pipecat.ai/server/services/stt/whisper)
   - [Kokoro TTS](server/kokoro_tts.py)
   - [Pipecat](https://pipecat.ai/)
@@ -15,23 +15,26 @@ As configured here, the entire game runs locally, powered by gpt-oss, Whisper, K
 
 # Setup
 
-## [gpt-oss](https://github.com/openai/gpt-oss)
-
-You can use any chat completions endpoint to interface with gpt-oss. For a voice AI application like this, you'll want to set the reasoning level to "low". (The default is "medium".)
-
-To run the model locally and set the reasoning level to "low", the [llama.cpp](https://github.com/ggml-org/llama.cpp) project's llama-server is a good option.
-
-Download llama.cpp binaries or build the source. You'll also need to specify a system instruction template that sets reasoning to low. You can use the [gpt-oss-template.jinja](gpt-oss-template.jinja) file in this repo. (llama-server doesn't pass a reasoning level argument through from the API request to the chat template.)
-
 Start the LLM server:
 
 ```
-# small model
-MODEL=ggml-org/gpt-oss-20b-GGUF
-# big model
-MODEL=ggml-org/gpt-oss-120b-GGUF
+DS: https://huggingface.co/datasets/WasamiKirua/Her-Samantha-Style
+DS DPO: https://huggingface.co/datasets/WasamiKirua/dpo_human_like
 
-llama-server -hf $MODEL --verbose-prompt --chat-template-file gpt-oss-template.jinja --jinja --cache-reuse 128 -fa
+# Fine Tuned Llama3.2 1B
+MODEL=WasamiKirua/llama3.2-1B-ProjectHuman-DPO-GGUF:Q8_0
+# Fine Tuned Gemma3 1B
+MODEL=WasamiKirua/gemma3-1B-ProjectHuman-GGUF:Q8_0
+# Fine Tuned Gemma3 270M
+MODEL=WasamiKirua/gemma3-270M-ProjectHuman-GGUF:Q8_0
+# Fine Tuned LFM2 1.2B
+MODEL=WasamiKirua/LFM2-1.2B-ProjectHuman-GGUF:Q8_0
+
+Pick the respectevely one
+CHAT_TEMP=llama3, CHAT_TEMP=gemma, CHAT_TEMP=chatml
+
+
+./llama-server -hf $MODEL -c 2048 --n-gpu-layers -1 --chat-template $CHAT_TEMP
 ```
 
 ## [Pipecat](https://pipecat.ai/) voice bot 
