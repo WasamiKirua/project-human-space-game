@@ -7,7 +7,7 @@ interface HeaderProps {
   error?: boolean;
 }
 
-export function Header({ title = "PIPECAT // ᓚᘏᗢ // TERMINAL", error }: HeaderProps) {
+export function Header({ title = "Project Human // ᓚᘏᗢ // Samantha", error }: HeaderProps) {
   const transportState = usePipecatClientTransportState();
   const [isBotSpeaking, setIsBotSpeaking] = useState(false);
   const [isUserSpeaking, setIsUserSpeaking] = useState(false);

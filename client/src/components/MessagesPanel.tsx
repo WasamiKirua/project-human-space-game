@@ -162,7 +162,7 @@ export function MessagesPanel() {
           <h3 className="text-sm font-bold terminal-text tracking-wider">
             COMMUNICATION LOG
           </h3>
-          <span className="text-xs opacity-50">// ENCRYPTED CHANNEL</span>
+          <span className="text-xs opacity-50">// BOT-USR</span>
         </div>
         <div className="text-xs terminal-text opacity-50">
           MSGS: {messages.length}
