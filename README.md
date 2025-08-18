@@ -1,4 +1,4 @@
-# Space Adventure Story - Voice Mode
+# Space Adventure Story With Samantha - Voice Mode
 
 You are the lone crew member on light transport ship *Gradient Ascent*. Your ship has suffered a catastrophic failure, cause unknown. Work with the ship's AI to diagnose the failure and make it safely to a station or planet.
 
