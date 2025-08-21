@@ -17,6 +17,7 @@ from pipecat.frames.frames import (
     LLMTextFrame,
 )
 from pipecat.pipeline.pipeline import Pipeline
+from pipecat.services.mem0.memory import Mem0MemoryService
 from pipecat.pipeline.runner import PipelineRunner
 from pipecat.pipeline.task import PipelineParams, PipelineTask
 from pipecat.processors.aggregators.openai_llm_context import OpenAILLMContext
@@ -106,9 +107,23 @@ async def run_bot(transport):
 
     tts = KokoroTTSService(model="prince-canuma/Kokoro-82M", voice="af_heart", sample_rate=24000)
 
+    # Create the memory service
+    memory = Mem0MemoryService(
+        api_key=os.getenv("MEM0_API_KEY"),
+        user_id=os.getenv("UNIQUE_USER"),
+        params=Mem0MemoryService.InputParams(
+            search_limit=3,
+            search_threshold=0.3,
+            api_version="v2",
+            system_prompt="Based on previous conversations, I recall: \n\n",
+            add_as_system_message=True,
+            position=1,
+        ),
+    )
+
     # Initialize LLM service
     llm = OpenAILLMService(
-        api_key='notneeded',
+        api_key=os.getenv("OPENAI_API_KEY"),
         base_url="http://localhost:8080/v1",
         model="",
     )
